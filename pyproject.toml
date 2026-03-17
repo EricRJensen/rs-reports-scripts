@@ -21,6 +21,7 @@ dependencies = [
   "jsonschema>=4.17.3",
   "python-dateutil==2.9.0.post0",
   "requests==2.32.3",
+  "inquirer==3.4.0",
   "rsxml==2.0.6",
   "semver==3.0.4",
   "setuptools==76.0.0",
@@ -42,7 +43,7 @@ geo = [
 include-package-data = true
 
 [tool.setuptools.package-data]
-pydex = ["**/*.graphql", "**/*.json"]
+pyreports = ["**/*.graphql", "**/*.json"]
 
 [tool.ruff]
 line-length = 240

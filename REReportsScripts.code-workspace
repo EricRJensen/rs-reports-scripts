@@ -2,8 +2,14 @@
   "folders": [
     {
       "name": "📦 pyreports",
-      "path": ".",
+      "path": "."
     },
+    {
+      "path": "../data-exchange-scripts"
+    },
+    {
+      "path": "../rs-reports-monorepo"
+    }
   ],
   "settings": {
     "terminal.integrated.defaultProfile.linux": "zsh",
@@ -19,7 +25,6 @@
       "--max-line-length=240"
     ],
     "graphql-config.load.rootDir": "${workspaceFolder}",
-    "python.analysis.extraPaths": ["../../lib/commons"],
     "python.terminal.activateEnvironment": true,
     "python.testing.pytestEnabled": true,
     "python.testing.unittestEnabled": true,
