@@ -7,7 +7,7 @@
     {
       "name": "🟦 TypeScript",
       "path": "typescript"
-    }
+    },
     {
       "name": "📦 pyreports",
       "path": "."
@@ -38,7 +38,10 @@
     "autopep8.args": [
       "--max-line-length=240"
     ],
-    "python.defaultInterpreterPath": "${workspaceFolder:📦 pyreports}/python/.venv/bin/python",
+    "python.defaultInterpreterPath": "${workspaceFolder:� Python}/.venv/bin/python",
+    "python.analysis.extraPaths": [
+      "${workspaceFolder:🐍 Python}"
+    ],
     "pylint.importStrategy": "fromEnvironment",
     "pylint.args": [
       "--disable=C0301,C0114,C0103,W0719,W0718",

@@ -55,7 +55,11 @@
       "name": "🟦 TypeScript: Create Report",
       "type": "node",
       "request": "launch",
-      "runtimeExecutable": "${workspaceFolder:📦 pyreports}/typescript/node_modules/.bin/tsx",
+      "runtimeExecutable": "${env:NVM_BIN}/node",
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
       "args": [
         "${workspaceFolder:📦 pyreports}/typescript/scripts/createReport.ts",
         "${input:environment}"
@@ -67,7 +71,11 @@
       "name": "🟦 TypeScript: Run Current File",
       "type": "node",
       "request": "launch",
-      "runtimeExecutable": "${workspaceFolder:📦 pyreports}/typescript/node_modules/.bin/tsx",
+      "runtimeExecutable": "${env:NVM_BIN}/node",
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
       "args": [
         "${file}",
         "${input:environment}"
