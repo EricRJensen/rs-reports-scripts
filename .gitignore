@@ -146,6 +146,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Parquet and csv files
+# Data files (Parquet, CSV, and zip files)
 *.parquet
 *.csv
+*.zip
