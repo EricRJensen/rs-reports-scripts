@@ -7,6 +7,8 @@ Interactive script to demonstrate DGO-related GraphQL queries.
 
 import argparse
 import json
+from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 import questionary
 from rsxml import Logger
@@ -75,6 +77,45 @@ def prompt_variables(var_names: list[str]) -> dict:
     return variables
 
 
+def parquet_download_path(url: str, huc10: str) -> Path:
+    """Build a default local destination for a downloaded parquet file."""
+    filename = Path(unquote(urlparse(url).path)).name or f"rme_{huc10}.parquet"
+    return Path("./dgos") / filename
+
+
+def download_parquet_result(api: ReportsAPI, result: dict, huc10: str):
+    """Prompt for a path and download the signed parquet URL."""
+    url = (result.get("data") or {}).get("fetchDGOParquetByHuc10")
+    if not url:
+        log.warning(colored("No parquet download URL was returned by the API.", "yellow"))
+        print(json.dumps(result, indent=2))
+        return
+
+    local_path_raw = questionary.text(
+        "Save parquet to:",
+        default=str(parquet_download_path(url, huc10)),
+    ).ask()
+    if not local_path_raw:
+        log.warning(colored("Download cancelled. Printing the signed URL instead.", "yellow"))
+        print(url)
+        return
+
+    local_path = Path(local_path_raw).expanduser()
+    force = False
+    if local_path.exists():
+        overwrite = questionary.confirm(
+            f"{local_path} already exists. Overwrite?",
+            default=False,
+        ).ask()
+        if not overwrite:
+            log.warning(colored("Download skipped because the destination file already exists.", "yellow"))
+            return
+        force = True
+
+    api.download_file(url, str(local_path), force=force)
+    log.info(colored(f"✅ Saved parquet to {local_path}", "green"))
+
+
 def main():
     parser = argparse.ArgumentParser(description="Demonstrate DGO GraphQL queries.")
     parser.add_argument("stage", choices=["staging", "production", "local"], help="API stage")
@@ -97,7 +138,10 @@ def main():
         query = api.load_query(entry["queryFile"])
         log.info(colored(f"⚡ Executing query from {entry['queryFile']}.graphql ...", 'cyan'))
         result = api.run_query(query, variables)
-        print(json.dumps(result, indent=2))
+        if entry["queryFile"] == "fetchDGOParquetByHuc10":
+            download_parquet_result(api, result, variables["huc10"])
+        else:
+            print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

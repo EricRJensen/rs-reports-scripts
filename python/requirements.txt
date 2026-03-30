@@ -9,3 +9,4 @@ setuptools==76.0.0
 six==1.17.0
 termcolor==2.5.0
 urllib3==2.3.0
+questionary==2.1.1
