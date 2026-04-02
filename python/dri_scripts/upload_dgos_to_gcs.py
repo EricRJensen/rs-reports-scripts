@@ -1,4 +1,4 @@
-"""Upload DGO CSV files from python/dgos to ce-riverscapes/dgos on GCS.
+"""Upload DGO CSV/parquet files from python/dgos to ce-riverscapes/dgos on GCS.
 
 This script uses `gcloud storage cp`, so make sure:
 1. gcloud SDK is installed
@@ -7,7 +7,7 @@ This script uses `gcloud storage cp`, so make sure:
 
 Examples:
     python3 dri_scripts/upload_dgos_to_gcs.py
-    python3 dri_scripts/upload_dgos_to_gcs.py --source-dir ./dgos --pattern "*.csv"
+    python3 dri_scripts/upload_dgos_to_gcs.py --source-dir ./dgos --pattern "*.csv" --pattern "*.parquet"
     python3 dri_scripts/upload_dgos_to_gcs.py --dry-run
 """
 
@@ -28,12 +28,42 @@ def default_dgos_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "dgos"
 
 
-def collect_files(source_dir: Path, pattern: str, recursive: bool) -> list[Path]:
+def unique_ordered(values: list[str]) -> list[str]:
+    """Keep first occurrence order while removing duplicates."""
+    seen = set()
+    result = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        result.append(value)
+    return result
+
+
+def parse_patterns(raw_patterns: list[str]) -> list[str]:
+    """Parse repeated/comma-separated glob patterns."""
+    patterns = []
+    for raw in raw_patterns:
+        patterns.extend(part.strip() for part in raw.split(",") if part.strip())
+    if not patterns:
+        return ["*.csv", "*.parquet"]
+    return unique_ordered(patterns)
+
+
+def collect_files(source_dir: Path, patterns: list[str], recursive: bool) -> list[Path]:
     """Collect files to upload from source directory."""
-    if recursive:
-        files = [p for p in source_dir.rglob(pattern) if p.is_file()]
-    else:
-        files = [p for p in source_dir.glob(pattern) if p.is_file()]
+    files = []
+    seen = set()
+    for pattern in patterns:
+        iterator = source_dir.rglob(pattern) if recursive else source_dir.glob(pattern)
+        for file_path in iterator:
+            if not file_path.is_file():
+                continue
+            resolved = file_path.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            files.append(file_path)
     return sorted(files)
 
 
@@ -47,17 +77,18 @@ def gcs_uri(bucket: str, prefix: str, source_dir: Path, file_path: Path) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Upload DGO CSV files to GCS.")
+    parser = argparse.ArgumentParser(description="Upload DGO CSV/parquet files to GCS.")
     parser.add_argument(
         "--source-dir",
         type=Path,
         default=default_dgos_dir(),
-        help="Directory containing CSV files to upload (default: ./python/dgos).",
+        help="Directory containing files to upload (default: ./python/dgos).",
     )
     parser.add_argument(
         "--pattern",
-        default="*.csv",
-        help='Filename pattern to upload (default: "*.csv").',
+        action="append",
+        default=[],
+        help='Filename pattern(s) to upload. Repeat flag or use comma-separated values (default: "*.csv,*.parquet").',
     )
     parser.add_argument(
         "--recursive",
@@ -98,14 +129,16 @@ def main():
     if not source_dir.exists():
         raise SystemExit(f"Source directory does not exist: {source_dir}")
 
-    files = collect_files(source_dir, args.pattern, args.recursive)
+    patterns = parse_patterns(args.pattern or [])
+    files = collect_files(source_dir, patterns, args.recursive)
     if not files:
-        log.warning(colored(f'No files found in {source_dir} matching pattern "{args.pattern}"', "yellow"))
+        log.warning(colored(f"No files found in {source_dir} matching patterns: {', '.join(patterns)}", "yellow"))
         return
 
     log.title("Uploading Files to GCS")
     log.info(colored(f"Source directory: {source_dir}", "cyan"))
     log.info(colored(f"Files found: {len(files)}", "cyan"))
+    log.info(colored(f"Patterns: {', '.join(patterns)}", "cyan"))
     log.info(colored(f"Destination: gs://{args.bucket}/{args.prefix.strip('/')}", "cyan"))
     log.info(colored(f"Project: {args.project}", "cyan"))
 
